@@ -11,4 +11,4 @@ This plugin relies on Kaitai-Struct Python runtime:
 2. Download io_ctr_tools and extract to scripts\addons folder
 3. Enable addon via Edit -> Preferences -> Add-ons -> Community tab
 
-![io_ctr_tools](banner.png)
+![io_ctr_tools](banner.jpg)
