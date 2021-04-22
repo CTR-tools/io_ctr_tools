@@ -58,7 +58,7 @@ def push_coord(vertex, verts):
     return
 
 def push_color(vertex, colors):
-    c = vertex.colorz
+    c = vertex.vcolor
     colors.append((c.r / float(255), c.g / float(255), c.b / float(255), c.a / float(255)))
     return
 
@@ -118,7 +118,7 @@ class ImportLEV(bpy.types.Operator, ImportHelper):
             bpy.context.scene.collection.children.link(medCol)
             
         if paths:
-            for q in scenes[0].data.quad_block_array:
+            for q in scenes[0].scene.quad_block_array:
 
                 if self.lod_level == 'Low' or self.lod_level == 'Both':
                     verts = []
@@ -128,12 +128,12 @@ class ImportLEV(bpy.types.Operator, ImportHelper):
                     faces.append((len(verts)+1, len(verts)+0, len(verts)+2, len(verts)+3))
                     
                     for i in range(0, 4):
-                        push_coord(scenes[0].data.vertex_array[q.indices[i]], verts)
+                        push_coord(scenes[0].scene.vertex_array[q.indices[i]], verts)
 
-                    push_color(scenes[0].data.vertex_array[q.indices[1]], colors)
-                    push_color(scenes[0].data.vertex_array[q.indices[0]], colors)
-                    push_color(scenes[0].data.vertex_array[q.indices[2]], colors)
-                    push_color(scenes[0].data.vertex_array[q.indices[3]], colors)
+                    push_color(scenes[0].scene.vertex_array[q.indices[1]], colors)
+                    push_color(scenes[0].scene.vertex_array[q.indices[0]], colors)
+                    push_color(scenes[0].scene.vertex_array[q.indices[2]], colors)
+                    push_color(scenes[0].scene.vertex_array[q.indices[3]], colors)
 
                     add_mesh(lowCol, "piece_" + str(q.block_id), verts, [], faces, colors)
 
@@ -148,27 +148,27 @@ class ImportLEV(bpy.types.Operator, ImportHelper):
                     faces.append((len(verts)+7, len(verts)+6, len(verts)+8, len(verts)+3))
                    
                     for i in range(0, 9):
-                        push_coord(scenes[0].data.vertex_array[q.indices[i]], verts)
+                        push_coord(scenes[0].scene.vertex_array[q.indices[i]], verts)
                    
-                    push_color(scenes[0].data.vertex_array[q.indices[4]], colors)
-                    push_color(scenes[0].data.vertex_array[q.indices[0]], colors)
-                    push_color(scenes[0].data.vertex_array[q.indices[5]], colors)
-                    push_color(scenes[0].data.vertex_array[q.indices[6]], colors)
+                    push_color(scenes[0].scene.vertex_array[q.indices[4]], colors)
+                    push_color(scenes[0].scene.vertex_array[q.indices[0]], colors)
+                    push_color(scenes[0].scene.vertex_array[q.indices[5]], colors)
+                    push_color(scenes[0].scene.vertex_array[q.indices[6]], colors)
                     
-                    push_color(scenes[0].data.vertex_array[q.indices[1]], colors)
-                    push_color(scenes[0].data.vertex_array[q.indices[4]], colors)
-                    push_color(scenes[0].data.vertex_array[q.indices[6]], colors)
-                    push_color(scenes[0].data.vertex_array[q.indices[7]], colors)
+                    push_color(scenes[0].scene.vertex_array[q.indices[1]], colors)
+                    push_color(scenes[0].scene.vertex_array[q.indices[4]], colors)
+                    push_color(scenes[0].scene.vertex_array[q.indices[6]], colors)
+                    push_color(scenes[0].scene.vertex_array[q.indices[7]], colors)
                     
-                    push_color(scenes[0].data.vertex_array[q.indices[6]], colors)
-                    push_color(scenes[0].data.vertex_array[q.indices[5]], colors)
-                    push_color(scenes[0].data.vertex_array[q.indices[2]], colors)
-                    push_color(scenes[0].data.vertex_array[q.indices[8]], colors)  
+                    push_color(scenes[0].scene.vertex_array[q.indices[6]], colors)
+                    push_color(scenes[0].scene.vertex_array[q.indices[5]], colors)
+                    push_color(scenes[0].scene.vertex_array[q.indices[2]], colors)
+                    push_color(scenes[0].scene.vertex_array[q.indices[8]], colors)  
                     
-                    push_color(scenes[0].data.vertex_array[q.indices[7]], colors)
-                    push_color(scenes[0].data.vertex_array[q.indices[6]], colors)
-                    push_color(scenes[0].data.vertex_array[q.indices[8]], colors)
-                    push_color(scenes[0].data.vertex_array[q.indices[3]], colors)
+                    push_color(scenes[0].scene.vertex_array[q.indices[7]], colors)
+                    push_color(scenes[0].scene.vertex_array[q.indices[6]], colors)
+                    push_color(scenes[0].scene.vertex_array[q.indices[8]], colors)
+                    push_color(scenes[0].scene.vertex_array[q.indices[3]], colors)
                    
                     add_mesh(medCol, "piece_" + str(q.block_id), verts, [], faces, colors)
 
