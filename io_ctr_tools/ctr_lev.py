@@ -25,7 +25,7 @@ class CtrLev(KaitaiStruct):
         _io__raw_scene = KaitaiStream(BytesIO(self._raw_scene))
         self.scene = self._root.Scene(_io__raw_scene, self, self._root)
         if self.ext_ptr_map == 0:
-            self.ptr_map = self._root.PtrMap(self._io, self, self._root)
+            self.patch_table = self._root.TPatchTable(self._io, self, self._root)
 
 
     class VisDataBranch(KaitaiStruct):
@@ -217,7 +217,7 @@ class CtrLev(KaitaiStruct):
                 self.bg_color[i] = self._root.Color(self._io, self, self._root)
 
             self.skip2_unkptr_related_to_vcol_anim = self._io.read_u4le()
-            self.cnt_vcanim = self._io.read_u4le()
+            self.num_vcanim = self._io.read_u4le()
             self.ptr_vcanim = self._io.read_u4le()
             self.skip2_3 = self._io.read_bytes(12)
             self.ptr_ai_nav = self._io.read_u4le()
@@ -312,11 +312,22 @@ class CtrLev(KaitaiStruct):
             self.progress_tracker = self._io.read_u1()
             self.midflag_unk = self._io.read_u1()
             self.ptr_texture_low = self._io.read_u4le()
-            self.ptr_texture_high = self._io.read_u4le()
+            self.ptr_add_tex = self._io.read_u4le()
             self.unk_col_array = [None] * (10)
             for i in range(10):
                 self.unk_col_array[i] = self._io.read_u2le()
 
+
+        @property
+        def midtex4(self):
+            if hasattr(self, '_m_midtex4'):
+                return self._m_midtex4 if hasattr(self, '_m_midtex4') else None
+
+            _pos = self._io.pos()
+            self._io.seek(self.ptr_texture_mid[3])
+            self._m_midtex4 = self._root.CtrTex(self._io, self, self._root)
+            self._io.seek(_pos)
+            return self._m_midtex4 if hasattr(self, '_m_midtex4') else None
 
         @property
         def midtex1(self):
@@ -341,6 +352,19 @@ class CtrLev(KaitaiStruct):
             return self._m_midtex2 if hasattr(self, '_m_midtex2') else None
 
         @property
+        def add_tex(self):
+            if hasattr(self, '_m_add_tex'):
+                return self._m_add_tex if hasattr(self, '_m_add_tex') else None
+
+            if self.ptr_add_tex != 0:
+                _pos = self._io.pos()
+                self._io.seek(self.ptr_add_tex)
+                self._m_add_tex = self._root.AddTex(self._io, self, self._root)
+                self._io.seek(_pos)
+
+            return self._m_add_tex if hasattr(self, '_m_add_tex') else None
+
+        @property
         def midtex3(self):
             if hasattr(self, '_m_midtex3'):
                 return self._m_midtex3 if hasattr(self, '_m_midtex3') else None
@@ -350,17 +374,6 @@ class CtrLev(KaitaiStruct):
             self._m_midtex3 = self._root.CtrTex(self._io, self, self._root)
             self._io.seek(_pos)
             return self._m_midtex3 if hasattr(self, '_m_midtex3') else None
-
-        @property
-        def midtex4(self):
-            if hasattr(self, '_m_midtex4'):
-                return self._m_midtex4 if hasattr(self, '_m_midtex4') else None
-
-            _pos = self._io.pos()
-            self._io.seek(self.ptr_texture_mid[3])
-            self._m_midtex4 = self._root.CtrTex(self._io, self, self._root)
-            self._io.seek(_pos)
-            return self._m_midtex4 if hasattr(self, '_m_midtex4') else None
 
 
     class Vector3u(KaitaiStruct):
@@ -389,13 +402,11 @@ class CtrLev(KaitaiStruct):
         def _read(self):
             self.name = (self._io.read_bytes(16)).decode(u"ascii")
             self.model_ptr = self._io.read_u4le()
-            self.scale = self._root.Vector3s(self._io, self, self._root)
-            self.scale1 = self._io.read_u2le()
+            self.scale = self._root.Vector4s(self._io, self, self._root)
             self.null1 = self._io.read_u4le()
             self.unk1 = self._io.read_u4le()
             self.skip = self._io.read_bytes(12)
-            self.position = self._root.Vector3s(self._io, self, self._root)
-            self.angle = self._root.Vector3s(self._io, self, self._root)
+            self.pose = self._root.Pose(self._io, self, self._root)
             self.event = self._io.read_u4le()
 
 
@@ -411,6 +422,24 @@ class CtrLev(KaitaiStruct):
             self.g = self._io.read_u1()
             self.b = self._io.read_u1()
             self.a = self._io.read_u1()
+
+
+    class TPatchTable(KaitaiStruct):
+        """an array of offsets that is used to convert relative pointers to
+        absolute psx ram pointers
+        """
+        def __init__(self, _io, _parent=None, _root=None):
+            self._io = _io
+            self._parent = _parent
+            self._root = _root if _root else self
+            self._read()
+
+        def _read(self):
+            self.size = self._io.read_u4le()
+            self.entries = [None] * (self.size // 4)
+            for i in range(self.size // 4):
+                self.entries[i] = self._io.read_u4le()
+
 
 
     class IconGroup(KaitaiStruct):
@@ -486,21 +515,6 @@ class CtrLev(KaitaiStruct):
             self.ptr_hi = self._io.read_u4le()
 
 
-    class FaceArray(KaitaiStruct):
-        def __init__(self, num_entries, _io, _parent=None, _root=None):
-            self._io = _io
-            self._parent = _parent
-            self._root = _root if _root else self
-            self.num_entries = num_entries
-            self._read()
-
-        def _read(self):
-            self.faces = [None] * (self.num_entries)
-            for i in range(self.num_entries):
-                self.faces[i] = self._root.Vector4s(self._io, self, self._root)
-
-
-
     class WaterPacket(KaitaiStruct):
         def __init__(self, _io, _parent=None, _root=None):
             self._io = _io
@@ -527,10 +541,7 @@ class CtrLev(KaitaiStruct):
             self.s4 = self._io.read_u4le()
 
 
-    class PtrMap(KaitaiStruct):
-        """an array of offsets that is used to convert relative pointers to
-        absolute psx ram pointers
-        """
+    class Vcolor(KaitaiStruct):
         def __init__(self, _io, _parent=None, _root=None):
             self._io = _io
             self._parent = _parent
@@ -538,19 +549,10 @@ class CtrLev(KaitaiStruct):
             self._read()
 
         def _read(self):
-            self.ptr_map_size = self._io.read_u4le()
-            self.ptr_map = [None] * (self.num_entries)
-            for i in range(self.num_entries):
-                self.ptr_map[i] = self._io.read_u4le()
-
-
-        @property
-        def num_entries(self):
-            if hasattr(self, '_m_num_entries'):
-                return self._m_num_entries if hasattr(self, '_m_num_entries') else None
-
-            self._m_num_entries = self.ptr_map_size // 4
-            return self._m_num_entries if hasattr(self, '_m_num_entries') else None
+            self.ptr_vertex = self._io.read_u4le()
+            self.u1 = self._io.read_u4le()
+            self.u2 = self._io.read_u4le()
+            self.color = self._root.Color(self._io, self, self._root)
 
 
     class Scene(KaitaiStruct):
@@ -581,12 +583,12 @@ class CtrLev(KaitaiStruct):
                 self.model_pointers[i] = self._io.read_u4le()
 
             self.mesh_info_header = self._root.MeshInfo(self._io, self, self._root)
-            self.quad_block_array = [None] * (self.mesh_info_header.cnt_quad_block)
-            for i in range(self.mesh_info_header.cnt_quad_block):
+            self.quad_block_array = [None] * (self.mesh_info_header.num_quad_blocks)
+            for i in range(self.mesh_info_header.num_quad_blocks):
                 self.quad_block_array[i] = self._root.QuadBlock(self._io, self, self._root)
 
-            self.vertex_array = [None] * (self.mesh_info_header.vertexnum)
-            for i in range(self.mesh_info_header.vertexnum):
+            self.vertex_array = [None] * (self.mesh_info_header.num_vertices)
+            for i in range(self.mesh_info_header.num_vertices):
                 self.vertex_array[i] = self._root.Vertex(self._io, self, self._root)
 
 
@@ -621,9 +623,9 @@ class CtrLev(KaitaiStruct):
                 return self._m_vis_data_array if hasattr(self, '_m_vis_data_array') else None
 
             _pos = self._io.pos()
-            self._io.seek(self.mesh_info_header.ptr_vis_data_array)
-            self._m_vis_data_array = [None] * (self.mesh_info_header.cnt_vis_data)
-            for i in range(self.mesh_info_header.cnt_vis_data):
+            self._io.seek(self.mesh_info_header.ptr_vis_data)
+            self._m_vis_data_array = [None] * (self.mesh_info_header.num_vis_data)
+            for i in range(self.mesh_info_header.num_vis_data):
                 self._m_vis_data_array[i] = self._root.VisData(self._io, self, self._root)
 
             self._io.seek(_pos)
@@ -654,6 +656,20 @@ class CtrLev(KaitaiStruct):
             return self._m_skybox if hasattr(self, '_m_skybox') else None
 
         @property
+        def vcolors(self):
+            if hasattr(self, '_m_vcolors'):
+                return self._m_vcolors if hasattr(self, '_m_vcolors') else None
+
+            _pos = self._io.pos()
+            self._io.seek(self.header.ptr_vcanim)
+            self._m_vcolors = [None] * (self.header.num_vcanim)
+            for i in range(self.header.num_vcanim):
+                self._m_vcolors[i] = self._root.Vcolor(self._io, self, self._root)
+
+            self._io.seek(_pos)
+            return self._m_vcolors if hasattr(self, '_m_vcolors') else None
+
+        @property
         def trial(self):
             if hasattr(self, '_m_trial'):
                 return self._m_trial if hasattr(self, '_m_trial') else None
@@ -663,6 +679,21 @@ class CtrLev(KaitaiStruct):
             self._m_trial = self._root.TrialData(self._io, self, self._root)
             self._io.seek(_pos)
             return self._m_trial if hasattr(self, '_m_trial') else None
+
+
+    class SkyboxFaceArray(KaitaiStruct):
+        def __init__(self, num_entries, _io, _parent=None, _root=None):
+            self._io = _io
+            self._parent = _parent
+            self._root = _root if _root else self
+            self.num_entries = num_entries
+            self._read()
+
+        def _read(self):
+            self.faces = [None] * (self.num_entries)
+            for i in range(self.num_entries):
+                self.faces[i] = self._root.Vector4s(self._io, self, self._root)
+
 
 
     class SkyboxVertex(KaitaiStruct):
@@ -675,6 +706,20 @@ class CtrLev(KaitaiStruct):
         def _read(self):
             self.position = self._root.Vector4s(self._io, self, self._root)
             self.colorz = self._root.Color(self._io, self, self._root)
+
+
+    class AddTex(KaitaiStruct):
+        def __init__(self, _io, _parent=None, _root=None):
+            self._io = _io
+            self._parent = _parent
+            self._root = _root if _root else self
+            self._read()
+
+        def _read(self):
+            self.ptr1 = self._io.read_u4le()
+            self.ptr2 = self._io.read_u4le()
+            self.ptr3 = self._io.read_u4le()
+            self.ptr4 = self._io.read_u4le()
 
 
     class Pose(KaitaiStruct):
@@ -817,14 +862,14 @@ class CtrLev(KaitaiStruct):
             self._read()
 
         def _read(self):
-            self.cnt_quad_block = self._io.read_u4le()
-            self.vertexnum = self._io.read_u4le()
-            self.unk1 = self._io.read_u4le()
-            self.ptr_quadblock_array = self._io.read_u4le()
-            self.ptr_vert_array = self._io.read_u4le()
-            self.unk2 = self._io.read_u4le()
-            self.ptr_vis_data_array = self._io.read_u4le()
-            self.cnt_vis_data = self._io.read_u4le()
+            self.num_quad_blocks = self._io.read_u4le()
+            self.num_vertices = self._io.read_u4le()
+            self.num_unk = self._io.read_u4le()
+            self.ptr_quadblocks = self._io.read_u4le()
+            self.ptr_vertices = self._io.read_u4le()
+            self.ptr_unk = self._io.read_u4le()
+            self.ptr_vis_data = self._io.read_u4le()
+            self.num_vis_data = self._io.read_u4le()
 
 
     class Skybox(KaitaiStruct):
@@ -853,7 +898,7 @@ class CtrLev(KaitaiStruct):
 
             self.faces = [None] * (8)
             for i in range(8):
-                self.faces[i] = self._root.FaceArray(self.num_faces[i], self._io, self, self._root)
+                self.faces[i] = self._root.SkyboxFaceArray(self.num_faces[i], self._io, self, self._root)
 
 
 

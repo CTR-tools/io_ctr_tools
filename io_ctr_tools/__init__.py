@@ -30,6 +30,8 @@ from bpy_extras.io_utils import ImportHelper
 from bpy.props import StringProperty, BoolProperty, EnumProperty
 from bpy.types import Operator
 
+def_indices = [[4, 0, 5,6], [1, 4, 6, 7], [6, 5, 2, 8], [7, 6, 8, 3]]
+
 def add_mesh(collection, ob_name, coords, edges=[], faces=[], colors=[]):
 
     mesh = bpy.data.meshes.new(ob_name + "_Mesh")
@@ -88,7 +90,6 @@ class ImportLEV(bpy.types.Operator, ImportHelper):
 
     filename_ext = ".lev"
     filter_glob: StringProperty(default="*.lev", options={'HIDDEN'})
-
 
     def execute(self, context):
         import os
@@ -149,26 +150,12 @@ class ImportLEV(bpy.types.Operator, ImportHelper):
                    
                     for i in range(0, 9):
                         push_coord(scenes[0].scene.vertex_array[q.indices[i]], verts)
-                   
-                    push_color(scenes[0].scene.vertex_array[q.indices[4]], colors)
-                    push_color(scenes[0].scene.vertex_array[q.indices[0]], colors)
-                    push_color(scenes[0].scene.vertex_array[q.indices[5]], colors)
-                    push_color(scenes[0].scene.vertex_array[q.indices[6]], colors)
                     
-                    push_color(scenes[0].scene.vertex_array[q.indices[1]], colors)
-                    push_color(scenes[0].scene.vertex_array[q.indices[4]], colors)
-                    push_color(scenes[0].scene.vertex_array[q.indices[6]], colors)
-                    push_color(scenes[0].scene.vertex_array[q.indices[7]], colors)
-                    
-                    push_color(scenes[0].scene.vertex_array[q.indices[6]], colors)
-                    push_color(scenes[0].scene.vertex_array[q.indices[5]], colors)
-                    push_color(scenes[0].scene.vertex_array[q.indices[2]], colors)
-                    push_color(scenes[0].scene.vertex_array[q.indices[8]], colors)  
-                    
-                    push_color(scenes[0].scene.vertex_array[q.indices[7]], colors)
-                    push_color(scenes[0].scene.vertex_array[q.indices[6]], colors)
-                    push_color(scenes[0].scene.vertex_array[q.indices[8]], colors)
-                    push_color(scenes[0].scene.vertex_array[q.indices[3]], colors)
+                    for i in def_indices:
+                        push_color(scenes[0].scene.vertex_array[q.indices[i[0]]], colors)
+                        push_color(scenes[0].scene.vertex_array[q.indices[i[1]]], colors)
+                        push_color(scenes[0].scene.vertex_array[q.indices[i[2]]], colors)
+                        push_color(scenes[0].scene.vertex_array[q.indices[i[3]]], colors)
                    
                     add_mesh(medCol, "piece_" + str(q.block_id), verts, [], faces, colors)
 
