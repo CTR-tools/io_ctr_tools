@@ -157,7 +157,7 @@ class CtrLev(KaitaiStruct):
 
 
     class SceneHeader(KaitaiStruct):
-        """scene header, contains pointer to other data within the file and
+        """scene header, contains pointers to other data within the file and
         variouis global data like starting grid, background colors, etc. 
         """
         def __init__(self, _io, _parent=None, _root=None):
@@ -225,6 +225,8 @@ class CtrLev(KaitaiStruct):
 
 
     class NavFrame(KaitaiStruct):
+        """describes a single navigation point for bots
+        """
         def __init__(self, _io, _parent=None, _root=None):
             self._io = _io
             self._parent = _parent
@@ -266,6 +268,8 @@ class CtrLev(KaitaiStruct):
 
 
     class AiFrameHeader(KaitaiStruct):
+        """ai path header data
+        """
         def __init__(self, _io, _parent=None, _root=None):
             self._io = _io
             self._parent = _parent
@@ -273,7 +277,7 @@ class CtrLev(KaitaiStruct):
             self._read()
 
         def _read(self):
-            self.unk1 = self._io.read_u2le()
+            self.version = self._io.read_u2le()
             self.num_frames = self._io.read_u2le()
             self.skip = self._io.read_bytes(72)
 
@@ -443,6 +447,8 @@ class CtrLev(KaitaiStruct):
 
 
     class IconGroup(KaitaiStruct):
+        """some icons are grouped together (like all wheel sprites)
+        """
         def __init__(self, _io, _parent=None, _root=None):
             self._io = _io
             self._parent = _parent
@@ -542,6 +548,8 @@ class CtrLev(KaitaiStruct):
 
 
     class Vcolor(KaitaiStruct):
+        """controls vertex animation, both color and position (roo's tubes best example).
+        """
         def __init__(self, _io, _parent=None, _root=None):
             self._io = _io
             self._parent = _parent
@@ -597,10 +605,12 @@ class CtrLev(KaitaiStruct):
             if hasattr(self, '_m_icons'):
                 return self._m_icons if hasattr(self, '_m_icons') else None
 
-            _pos = self._io.pos()
-            self._io.seek(self.header.ptr_icons)
-            self._m_icons = self._root.IconPack(self._io, self, self._root)
-            self._io.seek(_pos)
+            if self.header.ptr_icons != 0:
+                _pos = self._io.pos()
+                self._io.seek(self.header.ptr_icons)
+                self._m_icons = self._root.IconPack(self._io, self, self._root)
+                self._io.seek(_pos)
+
             return self._m_icons if hasattr(self, '_m_icons') else None
 
         @property
@@ -608,13 +618,15 @@ class CtrLev(KaitaiStruct):
             if hasattr(self, '_m_water_data'):
                 return self._m_water_data if hasattr(self, '_m_water_data') else None
 
-            _pos = self._io.pos()
-            self._io.seek(self.header.ptr_water)
-            self._m_water_data = [None] * (self.header.cnt_water)
-            for i in range(self.header.cnt_water):
-                self._m_water_data[i] = self._root.WaterPacket(self._io, self, self._root)
+            if self.header.ptr_water != 0:
+                _pos = self._io.pos()
+                self._io.seek(self.header.ptr_water)
+                self._m_water_data = [None] * (self.header.cnt_water)
+                for i in range(self.header.cnt_water):
+                    self._m_water_data[i] = self._root.WaterPacket(self._io, self, self._root)
 
-            self._io.seek(_pos)
+                self._io.seek(_pos)
+
             return self._m_water_data if hasattr(self, '_m_water_data') else None
 
         @property
@@ -622,13 +634,15 @@ class CtrLev(KaitaiStruct):
             if hasattr(self, '_m_vis_data_array'):
                 return self._m_vis_data_array if hasattr(self, '_m_vis_data_array') else None
 
-            _pos = self._io.pos()
-            self._io.seek(self.mesh_info_header.ptr_vis_data)
-            self._m_vis_data_array = [None] * (self.mesh_info_header.num_vis_data)
-            for i in range(self.mesh_info_header.num_vis_data):
-                self._m_vis_data_array[i] = self._root.VisData(self._io, self, self._root)
+            if self.mesh_info_header.ptr_vis_data != 0:
+                _pos = self._io.pos()
+                self._io.seek(self.mesh_info_header.ptr_vis_data)
+                self._m_vis_data_array = [None] * (self.mesh_info_header.num_vis_data)
+                for i in range(self.mesh_info_header.num_vis_data):
+                    self._m_vis_data_array[i] = self._root.VisData(self._io, self, self._root)
 
-            self._io.seek(_pos)
+                self._io.seek(_pos)
+
             return self._m_vis_data_array if hasattr(self, '_m_vis_data_array') else None
 
         @property
@@ -636,10 +650,12 @@ class CtrLev(KaitaiStruct):
             if hasattr(self, '_m_ai_nav'):
                 return self._m_ai_nav if hasattr(self, '_m_ai_nav') else None
 
-            _pos = self._io.pos()
-            self._io.seek(self.header.ptr_ai_nav)
-            self._m_ai_nav = self._root.AiPaths(self._io, self, self._root)
-            self._io.seek(_pos)
+            if self.header.ptr_ai_nav != 0:
+                _pos = self._io.pos()
+                self._io.seek(self.header.ptr_ai_nav)
+                self._m_ai_nav = self._root.AiPaths(self._io, self, self._root)
+                self._io.seek(_pos)
+
             return self._m_ai_nav if hasattr(self, '_m_ai_nav') else None
 
         @property
@@ -660,13 +676,15 @@ class CtrLev(KaitaiStruct):
             if hasattr(self, '_m_vcolors'):
                 return self._m_vcolors if hasattr(self, '_m_vcolors') else None
 
-            _pos = self._io.pos()
-            self._io.seek(self.header.ptr_vcanim)
-            self._m_vcolors = [None] * (self.header.num_vcanim)
-            for i in range(self.header.num_vcanim):
-                self._m_vcolors[i] = self._root.Vcolor(self._io, self, self._root)
+            if self.header.ptr_vcanim != 0:
+                _pos = self._io.pos()
+                self._io.seek(self.header.ptr_vcanim)
+                self._m_vcolors = [None] * (self.header.num_vcanim)
+                for i in range(self.header.num_vcanim):
+                    self._m_vcolors[i] = self._root.Vcolor(self._io, self, self._root)
 
-            self._io.seek(_pos)
+                self._io.seek(_pos)
+
             return self._m_vcolors if hasattr(self, '_m_vcolors') else None
 
         @property
@@ -674,10 +692,12 @@ class CtrLev(KaitaiStruct):
             if hasattr(self, '_m_trial'):
                 return self._m_trial if hasattr(self, '_m_trial') else None
 
-            _pos = self._io.pos()
-            self._io.seek(self.header.ptr_trial_data)
-            self._m_trial = self._root.TrialData(self._io, self, self._root)
-            self._io.seek(_pos)
+            if self.header.ptr_trial_data != 0:
+                _pos = self._io.pos()
+                self._io.seek(self.header.ptr_trial_data)
+                self._m_trial = self._root.TrialData(self._io, self, self._root)
+                self._io.seek(_pos)
+
             return self._m_trial if hasattr(self, '_m_trial') else None
 
 
@@ -697,6 +717,8 @@ class CtrLev(KaitaiStruct):
 
 
     class SkyboxVertex(KaitaiStruct):
+        """shorter vertex defintion without morph color
+        """
         def __init__(self, _io, _parent=None, _root=None):
             self._io = _io
             self._parent = _parent
@@ -709,6 +731,9 @@ class CtrLev(KaitaiStruct):
 
 
     class AddTex(KaitaiStruct):
+        """points to 4 structs, one of them assumed to store mosaic texture def
+        each pointer might include flag hidden in lsb
+        """
         def __init__(self, _io, _parent=None, _root=None):
             self._io = _io
             self._parent = _parent
@@ -852,7 +877,7 @@ class CtrLev(KaitaiStruct):
 
 
     class MeshInfo(KaitaiStruct):
-        """meash header struct, contains pointer to vertex array, quadblock array 
+        """mesh header struct, contains pointer to vertex array, quadblock array 
         and visdata array
         """
         def __init__(self, _io, _parent=None, _root=None):
