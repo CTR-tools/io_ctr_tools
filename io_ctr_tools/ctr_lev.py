@@ -97,10 +97,12 @@ class CtrLev(KaitaiStruct):
             if hasattr(self, '_m_build_start'):
                 return self._m_build_start if hasattr(self, '_m_build_start') else None
 
-            _pos = self._io.pos()
-            self._io.seek(self.ptr_build_start)
-            self._m_build_start = (self._io.read_bytes_term(0, False, True, True)).decode(u"ascii")
-            self._io.seek(_pos)
+            if self.ptr_build_start != 0:
+                _pos = self._io.pos()
+                self._io.seek(self.ptr_build_start)
+                self._m_build_start = (self._io.read_bytes_term(0, False, True, True)).decode(u"ascii")
+                self._io.seek(_pos)
+
             return self._m_build_start if hasattr(self, '_m_build_start') else None
 
         @property
@@ -108,10 +110,12 @@ class CtrLev(KaitaiStruct):
             if hasattr(self, '_m_build_end'):
                 return self._m_build_end if hasattr(self, '_m_build_end') else None
 
-            _pos = self._io.pos()
-            self._io.seek(self.ptr_build_end)
-            self._m_build_end = (self._io.read_bytes_term(0, False, True, True)).decode(u"ascii")
-            self._io.seek(_pos)
+            if self.ptr_build_end != 0:
+                _pos = self._io.pos()
+                self._io.seek(self.ptr_build_end)
+                self._m_build_end = (self._io.read_bytes_term(0, False, True, True)).decode(u"ascii")
+                self._io.seek(_pos)
+
             return self._m_build_end if hasattr(self, '_m_build_end') else None
 
         @property
@@ -119,10 +123,12 @@ class CtrLev(KaitaiStruct):
             if hasattr(self, '_m_build_type'):
                 return self._m_build_type if hasattr(self, '_m_build_type') else None
 
-            _pos = self._io.pos()
-            self._io.seek(self.ptr_build_type)
-            self._m_build_type = (self._io.read_bytes_term(0, False, True, True)).decode(u"ascii")
-            self._io.seek(_pos)
+            if self.ptr_build_type != 0:
+                _pos = self._io.pos()
+                self._io.seek(self.ptr_build_type)
+                self._m_build_type = (self._io.read_bytes_term(0, False, True, True)).decode(u"ascii")
+                self._io.seek(_pos)
+
             return self._m_build_type if hasattr(self, '_m_build_type') else None
 
 
@@ -143,6 +149,20 @@ class CtrLev(KaitaiStruct):
             self.vcolor_morph = self._root.Color(self._io, self, self._root)
 
 
+    class Gradient(KaitaiStruct):
+        def __init__(self, _io, _parent=None, _root=None):
+            self._io = _io
+            self._parent = _parent
+            self._root = _root if _root else self
+            self._read()
+
+        def _read(self):
+            self.point_from = self._io.read_s2le()
+            self.point_to = self._io.read_s2le()
+            self.color_from = self._root.Color(self._io, self, self._root)
+            self.color_to = self._root.Color(self._io, self, self._root)
+
+
     class Vector3s(KaitaiStruct):
         def __init__(self, _io, _parent=None, _root=None):
             self._io = _io
@@ -158,7 +178,7 @@ class CtrLev(KaitaiStruct):
 
     class SceneHeader(KaitaiStruct):
         """scene header, contains pointers to other data within the file and
-        variouis global data like starting grid, background colors, etc. 
+        various global data like starting grid, background colors, etc. 
         """
         def __init__(self, _io, _parent=None, _root=None):
             self._io = _io
@@ -169,7 +189,7 @@ class CtrLev(KaitaiStruct):
         def _read(self):
             self.ptr_mesh_info = self._io.read_u4le()
             self.ptr_skybox = self._io.read_u4le()
-            self.ptr_tex_array = self._io.read_u4le()
+            self.ptr_anim_tex = self._io.read_u4le()
             self.num_instances = self._io.read_u4le()
             self.ptr_instances = self._io.read_u4le()
             self.num_models = self._io.read_u4le()
@@ -185,9 +205,9 @@ class CtrLev(KaitaiStruct):
             self.ptr_icons = self._io.read_u4le()
             self.ptr_icons_array = self._io.read_u4le()
             self.ptr_restart_main = self._io.read_u4le()
-            self.some_data = [None] * (3)
+            self.glow_gradient = [None] * (3)
             for i in range(3):
-                self.some_data[i] = self._root.Somedata(self._io, self, self._root)
+                self.glow_gradient[i] = self._root.Gradient(self._io, self, self._root)
 
             self.start_grid = [None] * (8)
             for i in range(8):
@@ -212,10 +232,10 @@ class CtrLev(KaitaiStruct):
             self.cnt_restart_pts = self._io.read_u4le()
             self.ptr_restart_pts = self._io.read_u4le()
             self.skip2 = self._io.read_bytes(16)
-            self.bg_color = [None] * (4)
-            for i in range(4):
-                self.bg_color[i] = self._root.Color(self._io, self, self._root)
-
+            self.bg_color_top = self._root.Color(self._io, self, self._root)
+            self.bg_color_bottom = self._root.Color(self._io, self, self._root)
+            self.grad_color = self._root.Color(self._io, self, self._root)
+            self.color4 = self._io.read_u4le()
             self.skip2_unkptr_related_to_vcol_anim = self._io.read_u4le()
             self.num_vcanim = self._io.read_u4le()
             self.ptr_vcanim = self._io.read_u4le()
@@ -236,6 +256,41 @@ class CtrLev(KaitaiStruct):
         def _read(self):
             self.point = self._root.Pose(self._io, self, self._root)
             self.data = self._io.read_bytes(8)
+
+
+    class SpawnType(KaitaiStruct):
+        def __init__(self, _io, _parent=None, _root=None):
+            self._io = _io
+            self._parent = _parent
+            self._root = _root if _root else self
+            self._read()
+
+        def _read(self):
+            self.unk = self._io.read_u4le()
+            self.ptr = self._io.read_u4le()
+
+
+    class CreditsText(KaitaiStruct):
+        """used in crashdance credits file
+        """
+        def __init__(self, _io, _parent=None, _root=None):
+            self._io = _io
+            self._parent = _parent
+            self._root = _root if _root else self
+            self._read()
+
+        def _read(self):
+            self.chunk_size = self._io.read_u4le()
+            self.num_entries = self._io.read_u4le()
+            self.ptr_text = [None] * (self.num_entries)
+            for i in range(self.num_entries):
+                self.ptr_text[i] = self._io.read_u4le()
+
+            self.skip = self._io.read_u4le()
+            self.text = [None] * (self.num_entries)
+            for i in range(self.num_entries):
+                self.text[i] = (self._io.read_bytes_term(0, False, True, True)).decode(u"ascii")
+
 
 
     class Icon(KaitaiStruct):
@@ -316,7 +371,7 @@ class CtrLev(KaitaiStruct):
             self.progress_tracker = self._io.read_u1()
             self.midflag_unk = self._io.read_u1()
             self.ptr_texture_low = self._io.read_u4le()
-            self.ptr_add_tex = self._io.read_u4le()
+            self.ptr_add_vis = self._io.read_u4le()
             self.unk_col_array = [None] * (10)
             for i in range(10):
                 self.unk_col_array[i] = self._io.read_u2le()
@@ -360,9 +415,9 @@ class CtrLev(KaitaiStruct):
             if hasattr(self, '_m_add_tex'):
                 return self._m_add_tex if hasattr(self, '_m_add_tex') else None
 
-            if self.ptr_add_tex != 0:
+            if self.ptr_add_vis != 0:
                 _pos = self._io.pos()
-                self._io.seek(self.ptr_add_tex)
+                self._io.seek(self.ptr_add_vis)
                 self._m_add_tex = self._root.AddTex(self._io, self, self._root)
                 self._io.seek(_pos)
 
@@ -484,8 +539,9 @@ class CtrLev(KaitaiStruct):
 
 
     class TextureLayout(KaitaiStruct):
-        """a stuct to describe vram region.
+        """a struct to describe vram region.
         contains 4 UV coords, palette coord and texture page index
+        as well as bpp flag, maybe more?
         """
         def __init__(self, _io, _parent=None, _root=None):
             self._io = _io
@@ -504,6 +560,21 @@ class CtrLev(KaitaiStruct):
             self._io.align_to_byte()
             self.uv3 = self._root.Vector2b(self._io, self, self._root)
             self.uv4 = self._root.Vector2b(self._io, self, self._root)
+
+
+    class SkyboxSegment(KaitaiStruct):
+        def __init__(self, num_entries, _io, _parent=None, _root=None):
+            self._io = _io
+            self._parent = _parent
+            self._root = _root if _root else self
+            self.num_entries = num_entries
+            self._read()
+
+        def _read(self):
+            self.faces = [None] * (self.num_entries)
+            for i in range(self.num_entries):
+                self.faces[i] = self._root.Vector4s(self._io, self, self._root)
+
 
 
     class CtrTex(KaitaiStruct):
@@ -531,20 +602,6 @@ class CtrLev(KaitaiStruct):
         def _read(self):
             self.ptr_vertex = self._io.read_u4le()
             self.ptr_anim = self._io.read_u4le()
-
-
-    class Somedata(KaitaiStruct):
-        def __init__(self, _io, _parent=None, _root=None):
-            self._io = _io
-            self._parent = _parent
-            self._root = _root if _root else self
-            self._read()
-
-        def _read(self):
-            self.s1 = self._io.read_u2le()
-            self.s2 = self._io.read_u2le()
-            self.s3 = self._io.read_u4le()
-            self.s4 = self._io.read_u4le()
 
 
     class Vcolor(KaitaiStruct):
@@ -646,6 +703,22 @@ class CtrLev(KaitaiStruct):
             return self._m_vis_data_array if hasattr(self, '_m_vis_data_array') else None
 
         @property
+        def spawn_inst(self):
+            if hasattr(self, '_m_spawn_inst'):
+                return self._m_spawn_inst if hasattr(self, '_m_spawn_inst') else None
+
+            if self.header.ptr_spawn_arrays2 != 0:
+                _pos = self._io.pos()
+                self._io.seek(self.header.ptr_spawn_arrays2)
+                self._m_spawn_inst = [None] * (self.header.cnt_spawn_arrays2)
+                for i in range(self.header.cnt_spawn_arrays2):
+                    self._m_spawn_inst[i] = self._root.SpawnType(self._io, self, self._root)
+
+                self._io.seek(_pos)
+
+            return self._m_spawn_inst if hasattr(self, '_m_spawn_inst') else None
+
+        @property
         def ai_nav(self):
             if hasattr(self, '_m_ai_nav'):
                 return self._m_ai_nav if hasattr(self, '_m_ai_nav') else None
@@ -701,19 +774,30 @@ class CtrLev(KaitaiStruct):
             return self._m_trial if hasattr(self, '_m_trial') else None
 
 
-    class SkyboxFaceArray(KaitaiStruct):
-        def __init__(self, num_entries, _io, _parent=None, _root=None):
+    class GhostData(KaitaiStruct):
+        """ghost data used in time trial mode, same data saved to memcard
+        """
+        def __init__(self, _io, _parent=None, _root=None):
             self._io = _io
             self._parent = _parent
             self._root = _root if _root else self
-            self.num_entries = num_entries
             self._read()
 
         def _read(self):
-            self.faces = [None] * (self.num_entries)
-            for i in range(self.num_entries):
-                self.faces[i] = self._root.Vector4s(self._io, self, self._root)
+            self.magic = self._io.read_bytes(2)
+            if not self.magic == b"\xFC\xFF":
+                raise kaitaistruct.ValidationNotEqualError(b"\xFC\xFF", self.magic, self._io, u"/types/ghost_data/seq/0")
+            self.data_size = self._io.read_s2le()
+            self.track_index = self._io.read_s2le()
+            self.char_index = self._io.read_s2le()
+            self.unk2 = self._io.read_s4le()
+            self.unk3 = self._io.read_s4le()
+            self.unk4 = self._io.read_s4le()
+            self.ptrs = [None] * (5)
+            for i in range(5):
+                self.ptrs[i] = self._io.read_u4le()
 
+            self.data = self._io.read_bytes(self.data_size)
 
 
     class SkyboxVertex(KaitaiStruct):
@@ -745,6 +829,58 @@ class CtrLev(KaitaiStruct):
             self.ptr2 = self._io.read_u4le()
             self.ptr3 = self._io.read_u4le()
             self.ptr4 = self._io.read_u4le()
+
+        @property
+        def ptr1data(self):
+            if hasattr(self, '_m_ptr1data'):
+                return self._m_ptr1data if hasattr(self, '_m_ptr1data') else None
+
+            if self.ptr1 != 0:
+                _pos = self._io.pos()
+                self._io.seek((self.ptr1 & 4294967292))
+                self._m_ptr1data = self._io.read_bytes(1)
+                self._io.seek(_pos)
+
+            return self._m_ptr1data if hasattr(self, '_m_ptr1data') else None
+
+        @property
+        def ptr2data(self):
+            if hasattr(self, '_m_ptr2data'):
+                return self._m_ptr2data if hasattr(self, '_m_ptr2data') else None
+
+            if self.ptr2 != 0:
+                _pos = self._io.pos()
+                self._io.seek((self.ptr2 & 4294967292))
+                self._m_ptr2data = self._io.read_bytes(1)
+                self._io.seek(_pos)
+
+            return self._m_ptr2data if hasattr(self, '_m_ptr2data') else None
+
+        @property
+        def ptr3data(self):
+            if hasattr(self, '_m_ptr3data'):
+                return self._m_ptr3data if hasattr(self, '_m_ptr3data') else None
+
+            if self.ptr3 != 0:
+                _pos = self._io.pos()
+                self._io.seek((self.ptr3 & 4294967292))
+                self._m_ptr3data = self._io.read_bytes(1)
+                self._io.seek(_pos)
+
+            return self._m_ptr3data if hasattr(self, '_m_ptr3data') else None
+
+        @property
+        def ptr4data(self):
+            if hasattr(self, '_m_ptr4data'):
+                return self._m_ptr4data if hasattr(self, '_m_ptr4data') else None
+
+            if self.ptr4 != 0:
+                _pos = self._io.pos()
+                self._io.seek((self.ptr4 & 4294967292))
+                self._m_ptr4data = self._io.read_u4le()
+                self._io.seek(_pos)
+
+            return self._m_ptr4data if hasattr(self, '_m_ptr4data') else None
 
 
     class Pose(KaitaiStruct):
@@ -875,6 +1011,84 @@ class CtrLev(KaitaiStruct):
                 self.ptr_credits_text = self._io.read_u4le()
 
 
+        @property
+        def text(self):
+            if hasattr(self, '_m_text'):
+                return self._m_text if hasattr(self, '_m_text') else None
+
+            if  ((self.cnt_pointers >= 7) and (self.ptr_credits_text != 0)) :
+                _pos = self._io.pos()
+                self._io.seek(self.ptr_credits_text)
+                self._m_text = self._root.CreditsText(self._io, self, self._root)
+                self._io.seek(_pos)
+
+            return self._m_text if hasattr(self, '_m_text') else None
+
+        @property
+        def map(self):
+            if hasattr(self, '_m_map'):
+                return self._m_map if hasattr(self, '_m_map') else None
+
+            if  ((self.cnt_pointers >= 1) and (self.ptr_map != 0)) :
+                _pos = self._io.pos()
+                self._io.seek(self.ptr_map)
+                self._m_map = self._io.read_u4le()
+                self._io.seek(_pos)
+
+            return self._m_map if hasattr(self, '_m_map') else None
+
+        @property
+        def oxide_ghost(self):
+            if hasattr(self, '_m_oxide_ghost'):
+                return self._m_oxide_ghost if hasattr(self, '_m_oxide_ghost') else None
+
+            if  ((self.cnt_pointers >= 6) and (self.ptr_oxide_ghost != 0)) :
+                _pos = self._io.pos()
+                self._io.seek(self.ptr_oxide_ghost)
+                self._m_oxide_ghost = self._root.GhostData(self._io, self, self._root)
+                self._io.seek(_pos)
+
+            return self._m_oxide_ghost if hasattr(self, '_m_oxide_ghost') else None
+
+        @property
+        def tropy_ghost(self):
+            if hasattr(self, '_m_tropy_ghost'):
+                return self._m_tropy_ghost if hasattr(self, '_m_tropy_ghost') else None
+
+            if  ((self.cnt_pointers >= 5) and (self.ptr_tropy_ghost != 0)) :
+                _pos = self._io.pos()
+                self._io.seek(self.ptr_tropy_ghost)
+                self._m_tropy_ghost = self._root.GhostData(self._io, self, self._root)
+                self._io.seek(_pos)
+
+            return self._m_tropy_ghost if hasattr(self, '_m_tropy_ghost') else None
+
+        @property
+        def intro_cam(self):
+            if hasattr(self, '_m_intro_cam'):
+                return self._m_intro_cam if hasattr(self, '_m_intro_cam') else None
+
+            if  ((self.cnt_pointers >= 4) and (self.ptr_intro_cam != 0)) :
+                _pos = self._io.pos()
+                self._io.seek(self.ptr_intro_cam)
+                self._m_intro_cam = self._io.read_u4le()
+                self._io.seek(_pos)
+
+            return self._m_intro_cam if hasattr(self, '_m_intro_cam') else None
+
+        @property
+        def post_cam(self):
+            if hasattr(self, '_m_post_cam'):
+                return self._m_post_cam if hasattr(self, '_m_post_cam') else None
+
+            if  ((self.cnt_pointers >= 3) and (self.ptr_post_cam != 0)) :
+                _pos = self._io.pos()
+                self._io.seek(self.ptr_post_cam)
+                self._m_post_cam = self._io.read_u4le()
+                self._io.seek(_pos)
+
+            return self._m_post_cam if hasattr(self, '_m_post_cam') else None
+
 
     class MeshInfo(KaitaiStruct):
         """mesh header struct, contains pointer to vertex array, quadblock array 
@@ -923,7 +1137,7 @@ class CtrLev(KaitaiStruct):
 
             self.faces = [None] * (8)
             for i in range(8):
-                self.faces[i] = self._root.SkyboxFaceArray(self.num_faces[i], self._io, self, self._root)
+                self.faces[i] = self._root.SkyboxSegment(self.num_faces[i], self._io, self, self._root)
 
 
 
