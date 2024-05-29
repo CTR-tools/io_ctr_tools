@@ -1,6 +1,8 @@
 # io_ctr_tools
 io_ctr_tools is a Blender plugin, capable to import untextured LEV mesh with vertex colors from Crash Team Racing (PS1).
 
+_Warning: this is just a proof of concept, to extract fully textured models use CTR-tools: https://github.com/CTR-tools/CTR-tools_
+
 Python LEV parser is generated automatically using Kaitai-Struct: https://github.com/kaitai-io/kaitai_struct_compiler \
 KSY file can be found here: https://github.com/CTR-tools/CTR-tools/blob/master/formats/ctr_lev.ksy \
 For other CTR related tools check https://github.com/CTR-tools/CTR-tools
